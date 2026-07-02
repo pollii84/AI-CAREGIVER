@@ -146,14 +146,15 @@ SELECT create_hypertable('alerts', 'recorded_at');
 -- ── 7. Audit log ─────────────────────────────────────────────────────────────
 
 CREATE TABLE audit_log (
-    id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    id            UUID DEFAULT gen_random_uuid(),
     actor_type    TEXT NOT NULL CHECK (actor_type IN ('patient', 'caregiver', 'system', 'ai_agent')),
     actor_id      UUID,
     action        TEXT NOT NULL,
     resource_type TEXT NOT NULL,
     resource_id   UUID,
     metadata      JSONB,
-    occurred_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+    occurred_at   TIMESTAMPTZ NOT NULL DEFAULT now(),
+    PRIMARY KEY (id, occurred_at)
 );
 SELECT create_hypertable('audit_log', 'occurred_at');
 
