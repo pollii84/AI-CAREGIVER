@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/* Brand tokens — 03-Product-UX-Design-Frontend/PRODUCT_UX_DESIGN.md §1.
+   Shared across marketing site and the patient/caregiver app so the two
+   feel like one product, not a marketing site bolted onto something else. */
+:root {
+  --color-primary: #0891b2;
+  --color-on-primary: #ffffff;
+  --color-secondary: #22d3ee;
+  --color-accent: #059669;
+  --color-background: #ecfeff;
+  --color-foreground: #164e63;
+  --color-muted: #e8f1f6;
+  --color-border: #a5f3fc;
+  --color-destructive: #dc2626;
+}
+
+@theme inline {
+  --color-primary: var(--color-primary);
+  --color-on-primary: var(--color-on-primary);
+  --color-secondary: var(--color-secondary);
+  --color-accent: var(--color-accent);
+  --color-background: var(--color-background);
+  --color-foreground: var(--color-foreground);
+  --color-muted: var(--color-muted);
+  --color-border: var(--color-border);
+  --color-destructive: var(--color-destructive);
+  --font-heading: var(--font-figtree);
+  --font-body: var(--font-noto-sans);
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-foreground);
+  font-family: var(--font-body), sans-serif;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-heading), sans-serif;
+}
