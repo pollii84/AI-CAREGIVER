@@ -16,11 +16,53 @@ const API_BASE_URL = 'http://127.0.0.1:8000/api/v1';
 
 // Set after onboarding in a real build. Hardcoded for scaffold verification —
 // create a patient first via the backend, then paste its id here.
-export const DEV_PATIENT_ID = '8d6aaa97-cf22-4654-9146-6de1826a4fa1';
+export const DEV_PATIENT_ID = '9d15de79-d89a-48ee-bd83-8d1e0e6ee46a';
+
+// Dev-only credentials for the patient above — the backend now requires a
+// Bearer token on every patient route, so the client logs in lazily and
+// caches the access token. Replace with real session auth before shipping.
+const DEV_EMAIL = 'dev@patient.local';
+const DEV_PASSWORD = 'DevPassword123!';
+
+let accessToken: string | null = null;
+
+async function ensureToken(): Promise<string> {
+  if (accessToken) return accessToken;
+  const res = await fetch(`${API_BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: DEV_EMAIL, password: DEV_PASSWORD, role: 'patient' }),
+  });
+  if (!res.ok) {
+    throw new Error(`dev login failed -> ${res.status}: ${await res.text().catch(() => '')}`);
+  }
+  const body = (await res.json()) as { access_token: string };
+  accessToken = body.access_token;
+  return accessToken;
+}
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const token = await ensureToken();
   const res = await fetch(`${API_BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    ...init,
+  });
+  if (res.status === 401) {
+    // token expired (15-min access tokens) — re-login once and retry
+    accessToken = null;
+    const retryToken = await ensureToken();
+    return requestWithToken<T>(path, retryToken, init);
+  }
+  if (!res.ok) {
+    const body = await res.text().catch(() => '');
+    throw new Error(`${init?.method ?? 'GET'} ${path} -> ${res.status}: ${body}`);
+  }
+  return res.json();
+}
+
+async function requestWithToken<T>(path: string, token: string, init?: RequestInit): Promise<T> {
+  const res = await fetch(`${API_BASE_URL}${path}`, {
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
     ...init,
   });
   if (!res.ok) {
