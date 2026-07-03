@@ -1,0 +1,3 @@
+# Auth-layer dev-only RSA keypair (app/auth/keys.py) — generated on first
+# run when no key material is configured via env. Never commit private keys.
+.keys/

@@ -109,6 +109,88 @@ class ConsentRecord(Base):
     )
 
 
+class PatientCredential(Base):
+    """AUTH_LAYER.md §8.1. `patient_id` is the PK (not a separate `id`) —
+    enforces one-account-per-patient-row at the schema level.
+    """
+
+    __tablename__ = "patient_credentials"
+
+    patient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("patients.id"), primary_key=True)
+    email: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    password_hash: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    provider: Mapped[str] = mapped_column(Text, default="local", nullable=False)
+    external_subject_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class CaregiverCredential(Base):
+    """AUTH_LAYER.md §8.1. Never queried jointly with PatientCredential —
+    kept as a separate table rather than a shared/polymorphic one.
+    """
+
+    __tablename__ = "caregiver_credentials"
+
+    caregiver_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("caregivers.id"), primary_key=True)
+    email: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    password_hash: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    provider: Mapped[str] = mapped_column(Text, default="local", nullable=False)
+    external_subject_id: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(server_default=func.now())
+
+
+class RefreshToken(Base):
+    """AUTH_LAYER.md §3.2, §8.2. Opaque token, hashed at rest — `token_hash`
+    is what's queried, the raw token is never stored. `actor_id` deliberately
+    has no FK: it points at `patients.id` or `caregivers.id` depending on
+    `actor_type` and can't be a single foreign key.
+    """
+
+    __tablename__ = "refresh_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    session_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    actor_type: Mapped[str] = mapped_column(Text, nullable=False)
+    actor_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), nullable=False)
+    token_hash: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    issued_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(nullable=False)
+    revoked_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+    replaced_by_id: Mapped[Optional[uuid.UUID]] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("refresh_tokens.id"), nullable=True
+    )
+
+    __table_args__ = (CheckConstraint("actor_type IN ('patient', 'caregiver')"),)
+
+
+class CaregiverInvite(Base):
+    """AUTH_LAYER.md §6.2, §8.3. Patient-initiated invite; `token_hash` is the
+    hashed opaque token sent in the invite link — see §8.2's docstring for
+    why the raw value is never persisted.
+    """
+
+    __tablename__ = "caregiver_invites"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    patient_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("patients.id"), nullable=False)
+    email: Mapped[str] = mapped_column(Text, nullable=False)
+    role: Mapped[str] = mapped_column(Text, default="family", nullable=False)
+    token_hash: Mapped[str] = mapped_column(Text, unique=True, nullable=False)
+    status: Mapped[str] = mapped_column(Text, default="pending", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(server_default=func.now())
+    expires_at: Mapped[datetime] = mapped_column(nullable=False)
+    accepted_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
+
+    __table_args__ = (
+        CheckConstraint("role IN ('family', 'clinician')"),
+        CheckConstraint("status IN ('pending', 'accepted', 'expired', 'revoked')"),
+    )
+
+
 class CorpusSource(Base):
     """Bridge row to the vector DB — Database doc §5. `vector_id` is the ID in
     whichever vector store Architecture doc §8 resolves to (pgvector row or

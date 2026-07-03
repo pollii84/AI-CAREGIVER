@@ -80,6 +80,61 @@ CREATE TABLE consent_records (
     version    TEXT NOT NULL
 );
 
+-- ── Auth layer (02-Software-Architecture/AUTH_LAYER.md §8) ─────────────────
+-- New tables only — patients/caregivers/patient_caregiver_links untouched,
+-- per that doc's §8 intent (identity/contact data not duplicated there).
+
+CREATE TABLE patient_credentials (
+    patient_id           UUID PRIMARY KEY REFERENCES patients(id),
+    email                TEXT NOT NULL UNIQUE,
+    password_hash        TEXT,                     -- null when provider != 'local'
+    provider             TEXT NOT NULL DEFAULT 'local',
+    external_subject_id  TEXT,                      -- null for 'local'; AUTH_LAYER.md §2.3
+    email_verified        BOOLEAN NOT NULL DEFAULT false,
+    created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at            TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE caregiver_credentials (
+    caregiver_id          UUID PRIMARY KEY REFERENCES caregivers(id),
+    email                 TEXT NOT NULL UNIQUE,
+    password_hash         TEXT,
+    provider              TEXT NOT NULL DEFAULT 'local',
+    external_subject_id   TEXT,
+    email_verified         BOOLEAN NOT NULL DEFAULT false,
+    created_at             TIMESTAMPTZ NOT NULL DEFAULT now(),
+    updated_at             TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE refresh_tokens (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id      UUID NOT NULL,             -- groups a rotation chain; == JWT "sid" claim
+    actor_type      TEXT NOT NULL CHECK (actor_type IN ('patient', 'caregiver')),
+    actor_id        UUID NOT NULL,             -- patients.id or caregivers.id depending on
+                                                -- actor_type; deliberately no FK (can't
+                                                -- reference two different tables) — see
+                                                -- AUTH_LAYER.md §8.2
+    token_hash      TEXT NOT NULL UNIQUE,       -- SHA-256 of the opaque token; raw value never stored
+    issued_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at      TIMESTAMPTZ NOT NULL,
+    revoked_at      TIMESTAMPTZ,
+    replaced_by_id  UUID REFERENCES refresh_tokens(id)
+);
+CREATE INDEX ON refresh_tokens (session_id);
+
+CREATE TABLE caregiver_invites (
+    id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    patient_id      UUID NOT NULL REFERENCES patients(id),
+    email           TEXT NOT NULL,
+    role            TEXT NOT NULL DEFAULT 'family' CHECK (role IN ('family', 'clinician')),
+    token_hash      TEXT NOT NULL UNIQUE,
+    status          TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'accepted', 'expired', 'revoked')),
+    created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+    expires_at      TIMESTAMPTZ NOT NULL,
+    accepted_at     TIMESTAMPTZ
+);
+CREATE INDEX ON caregiver_invites (patient_id);
+
 -- ── 5. Vector DB reference table ────────────────────────────────────────────
 
 CREATE TABLE corpus_sources (
