@@ -138,15 +138,15 @@ def register_caregiver(payload: CaregiverRegisterIn, db: Session = Depends(get_d
     write_audit_log(db, "caregiver", caregiver.id, "account_created", "caregiver", caregiver.id)
 
     if invite is not None:
-        accept_invite(db, invite, caregiver.id)
+        link = accept_invite(db, invite, caregiver.id)
         write_audit_log(
             db,
             "caregiver",
             caregiver.id,
             "caregiver_link_accepted",
             "patient_caregiver_link",
-            invite.patient_id,
-            metadata={"invite_id": str(invite.id)},
+            link.id,
+            metadata={"invite_id": str(invite.id), "patient_id": str(invite.patient_id)},
         )
 
     tokens, _ = issue_token_pair(db, actor_id=caregiver.id, actor_type="caregiver")

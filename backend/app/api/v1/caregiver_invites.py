@@ -142,8 +142,8 @@ def accept_caregiver_invite(
         identity.actor_id,
         "caregiver_link_accepted",
         "patient_caregiver_link",
-        invite.patient_id,
-        metadata={"invite_id": str(invite.id)},
+        link.id,
+        metadata={"invite_id": str(invite.id), "patient_id": str(invite.patient_id)},
     )
     db.commit()
     return LinkOut(patient_id=link.patient_id, caregiver_id=link.caregiver_id, role=link.role, status=link.status)
