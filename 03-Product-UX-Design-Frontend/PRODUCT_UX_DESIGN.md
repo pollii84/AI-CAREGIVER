@@ -1,8 +1,8 @@
 # Product / UX Design — AI Caregiver for Neurodegenerative Patients
 
-**Status:** Draft v0.2 (revised against Lovi reference)
+**Status:** Draft v0.3 (auth/onboarding/invite UX split out, §10)
 **Depends on:** [01-PRD/PRD.md](../01-PRD/PRD.md), [02-Software-Architecture/ARCHITECTURE.md](../02-Software-Architecture/ARCHITECTURE.md)
-**Last updated:** 2026-07-02
+**Last updated:** 2026-07-03
 **Reference note:** Mobbin MCP connected mid-session — pulled 25 screens from the Lovi app (iOS, AI skincare companion). Full IA visible: onboarding, Today/home, AI chat ("Ask Lóvi"), progress tracking, skin diary, settings. §9 documents what's adopted, adapted, or explicitly rejected from it — rejected mainly on compliance grounds (PRD Open Risk #1), not taste.
 
 ---
@@ -205,6 +205,14 @@ Full disposition of every notable pattern pulled from the 25 Lovi screens (Mobbi
 | Confetti/celebration animation on completing daily items | **Rejected** | §2 | Motion-heavy, conflicts with `prefers-reduced-motion` baseline (§2) for a tremor/motor-sensitive audience |
 | Calendar view for scan/diary history | **Considered, deferred** | — | Reasonable alternate view for check-in history; not in MVP scope, revisit post-launch |
 | Text-only AI chat input | **Extended, not adopted as-is** | §4 | We add persistent voice input — hard PRD requirement Lovi's audience doesn't share |
+
+---
+
+## 10. Auth, Onboarding & Caregiver Invite UX
+
+Registration, login, password reset, the guided onboarding walk-through (disease confirmation, medication entry, communication preference, consent), and the patient-initiated caregiver invite/accept flow (both the no-account and existing-account paths) are specced in a sibling doc, not here: **[AUTH_ONBOARDING_UX.md](./AUTH_ONBOARDING_UX.md)**.
+
+This work exists because 02-Software-Architecture/AUTH_LAYER.md introduced real auth (local email+password, JWT/refresh tokens, patient-initiated caregiver invites) where the original 5 screens in this doc assumed a hardcoded dev patient ID and never needed a login screen. Split into its own file for the same reason AUTH_LAYER.md itself was split out of ARCHITECTURE.md rather than appended to it — this project's established pattern for a pillar doc that's outgrown its parent (see also the 01/02/03/04/05 top-level split itself).
 
 ---
 
